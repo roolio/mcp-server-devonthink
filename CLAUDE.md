@@ -56,6 +56,7 @@ npm run build         # Verify the build works
   - **`getSelectedRecords.ts`**: Gets information about currently selected records
   - **`listGroupContent.ts`**: Lists the content of a specific group
   - **`getRecordContent.ts`**: Retrieves the content of a specific record
+  - **`getMultipleRecordsContent.ts`**: Retrieves content from multiple records efficiently in a single batch operation
   - **`renameRecord.ts`**: Renames a record
   - **`addTags.ts`**: Adds tags to a record
   - **`removeTags.ts`**: Removes tags from a record
@@ -109,6 +110,7 @@ The MCP server currently provides the following tools:
 25. **`check_ai_health`** - Check if DEVONthink's AI services are available and working properly
 26. **`create_summary_document`** - Create AI-generated summaries from multiple documents
 27. **`get_ai_tool_documentation`** - Get detailed documentation for AI tools including examples and use cases
+28. **`get_multiple_records_content`** - Retrieve content from multiple records in a single call (batch operation, optimized for RAG workflows)
 
 ## Adding New Tools
 

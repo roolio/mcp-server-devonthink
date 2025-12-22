@@ -21,6 +21,7 @@ import { createFromUrlTool } from "./tools/createFromUrl.js";
 import { getOpenDatabasesTool } from "./tools/getOpenDatabases.js";
 import { listGroupContentTool } from "./tools/listGroupContent.js";
 import { getRecordContentTool } from "./tools/getRecordContent.js";
+import { getMultipleRecordsContentTool } from "./tools/getMultipleRecordsContent.js";
 import { renameRecordTool } from "./tools/renameRecord.js";
 import { addTagsTool } from "./tools/addTags.js";
 import { removeTagsTool } from "./tools/removeTags.js";
@@ -68,6 +69,7 @@ export const createServer = async () => {
 		selectedRecordsTool,
 		listGroupContentTool,
 		getRecordContentTool,
+		getMultipleRecordsContentTool,
 		renameRecordTool,
 		addTagsTool,
 		removeTagsTool,
