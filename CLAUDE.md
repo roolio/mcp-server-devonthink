@@ -89,7 +89,7 @@ The MCP server currently provides the following tools:
 4. **`move_record`** - Move records between groups
 5. **`get_record_properties`** - Get detailed metadata and properties for records
 6. **`get_record_by_identifier`** - Get a record using either UUID or ID+Database combination (recommended for specific record lookup)
-7. **`search`** - Perform text-based searches with various comparison options (now returns both ID and UUID)
+7. **`search`** - Perform text-based searches with various comparison options (now returns both ID and UUID). Supports `sortBy` (creationDate, modificationDate, name, size) and `sortOrder` (ascending, descending) - defaults to modificationDate descending
 8. **`lookup_record`** - Look up records by filename, path, URL, tags, comment, or content hash (exact matches only, no wildcards)
 9. **`create_from_url`** - Create records from web URLs in multiple formats
 10. **`get_open_databases`** - Get a list of all currently open databases

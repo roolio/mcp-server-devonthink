@@ -66,6 +66,16 @@ const SearchSchema = z
 			.optional()
 			.describe("Exclude subgroups from the search (optional)"),
 		limit: z.number().optional().describe("Maximum number of results to return (optional)"),
+		sortBy: z
+			.enum(["creationDate", "modificationDate", "name", "size"])
+			.optional()
+			.default("modificationDate")
+			.describe("Field to sort results by (default: modificationDate)"),
+		sortOrder: z
+			.enum(["ascending", "descending"])
+			.optional()
+			.default("descending")
+			.describe("Sort order (default: descending)"),
 	})
 	.strict()
 	.refine(
@@ -124,6 +134,8 @@ const search = async (input: SearchInput): Promise<SearchResult> => {
 		comparison,
 		excludeSubgroups,
 		limit = 50,
+		sortBy = "modificationDate",
+		sortOrder = "descending",
 	} = input;
 
 	// Validate inputs
@@ -162,13 +174,13 @@ const search = async (input: SearchInput): Promise<SearchResult> => {
     (() => {
       const theApp = Application("DEVONthink");
       theApp.includeStandardAdditions = true;
-      
+
       // Inject helper functions
       ${getRecordLookupHelpers()}
       ${getDatabaseHelper}
       ${isGroupHelper}
       ${versionHelper}
-      
+
       try {
         // Define variables for lookup
         const pGroupUuid = ${groupUuid ? `"${escapeStringForJXA(groupUuid)}"` : "null"};
@@ -180,14 +192,16 @@ const search = async (input: SearchInput): Promise<SearchResult> => {
         const pComparison = ${formatValueForJXA(comparison)};
         const pExcludeSubgroups = ${excludeSubgroups !== undefined ? excludeSubgroups : "null"};
         const pLimit = ${limit};
+        const pSortBy = ${formatValueForJXA(sortBy)};
+        const pSortOrder = ${formatValueForJXA(sortOrder)};
 
 
         let searchScope;
         let targetDatabase;
-        
+
         // Get target database
         targetDatabase = getDatabase(theApp, pDatabaseName);
-        
+
         // Determine search scope
         if (pUseCurrentGroup) {
           searchScope = theApp.currentGroup();
@@ -198,7 +212,7 @@ const search = async (input: SearchInput): Promise<SearchResult> => {
             return JSON.stringify({ success: false, error: "Current selection is not a group. Type: " + searchScope.recordType() });
           }
         } else if (pGroupUuid || pGroupId || pGroupPath) {
-          
+
           let lookupOptions;
           try {
             lookupOptions = {};
@@ -215,11 +229,11 @@ const search = async (input: SearchInput): Promise<SearchResult> => {
           } catch (e) {
             return JSON.stringify({ success: false, error: "Error creating lookup options: " + e.toString() });
           }
-          
+
           const lookupResult = getRecord(theApp, lookupOptions);
-          
+
           // Don't try to stringify the record object
-          
+
           if (!lookupResult.record) {
             let errorDetails = lookupResult.error || "Group not found";
             if (pGroupUuid) {
@@ -231,9 +245,9 @@ const search = async (input: SearchInput): Promise<SearchResult> => {
             }
             return JSON.stringify({ success: false, error: errorDetails });
           }
-          
+
           searchScope = lookupResult.record;
-          
+
           try {
             const isGroupResult = isGroup(searchScope);
             if (!isGroupResult) {
@@ -250,7 +264,7 @@ const search = async (input: SearchInput): Promise<SearchResult> => {
         } else {
           searchScope = null; // Search all databases
         }
-        
+
         const searchOptions = {};
         if (searchScope) {
           searchOptions["in"] = searchScope;
@@ -261,19 +275,19 @@ const search = async (input: SearchInput): Promise<SearchResult> => {
         if (pExcludeSubgroups !== null) {
           searchOptions["excludeSubgroups"] = pExcludeSubgroups;
         }
-        
-        
+
+
         let searchResults;
         try {
           searchResults = theApp.search("${escapedQuery}", searchOptions);
         } catch (e) {
           return JSON.stringify({ success: false, error: "Error executing search: " + e.toString() });
         }
-        
+
         if (!searchResults || searchResults.length === 0) {
           return JSON.stringify({ success: true, results: [], totalCount: 0 });
         }
-        
+
         let filteredResults = searchResults;
         if (pRecordType) {
           filteredResults = searchResults.filter(record => {
@@ -284,9 +298,38 @@ const search = async (input: SearchInput): Promise<SearchResult> => {
             }
           });
         }
-        
+
+        // Sort results
+        if (pSortBy) {
+          filteredResults.sort((a, b) => {
+            let valA, valB;
+            try {
+              if (pSortBy === "creationDate") {
+                valA = a.creationDate() ? a.creationDate().getTime() : 0;
+                valB = b.creationDate() ? b.creationDate().getTime() : 0;
+              } else if (pSortBy === "modificationDate") {
+                valA = a.modificationDate() ? a.modificationDate().getTime() : 0;
+                valB = b.modificationDate() ? b.modificationDate().getTime() : 0;
+              } else if (pSortBy === "name") {
+                valA = a.name().toLowerCase();
+                valB = b.name().toLowerCase();
+              } else if (pSortBy === "size") {
+                valA = a.size() || 0;
+                valB = b.size() || 0;
+              }
+            } catch (e) {
+              return 0;
+            }
+            if (pSortOrder === "ascending") {
+              return valA > valB ? 1 : valA < valB ? -1 : 0;
+            } else {
+              return valB > valA ? 1 : valB < valA ? -1 : 0;
+            }
+          });
+        }
+
         const limitedResults = filteredResults.slice(0, pLimit);
-        
+
         const results = limitedResults.map((record, index) => {
           try {
             const result = {};
@@ -301,19 +344,19 @@ const search = async (input: SearchInput): Promise<SearchResult> => {
             result["modificationDate"] = record.modificationDate() ? record.modificationDate().toString() : null;
             result["tags"] = record.tags();
             result["size"] = record.size();
-            
+
             try {
               if (record.score && record.score() !== undefined) {
                 result["score"] = record.score();
               }
             } catch (e) {}
-            
+
             return result;
           } catch (e) {
             throw e;
           }
         });
-        
+
         return JSON.stringify({ success: true, results: results, totalCount: filteredResults.length });
       } catch (error) {
         return JSON.stringify({ success: false, error: error.toString() });
