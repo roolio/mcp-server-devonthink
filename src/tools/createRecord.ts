@@ -2,6 +2,7 @@ import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { Tool, ToolSchema } from "@modelcontextprotocol/sdk/types.js";
 import { executeJxa } from "../applescript/execute.js";
+import { escapeStringForJXA } from "../utils/escapeString.js";
 
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
@@ -42,7 +43,7 @@ const createRecord = async (
     (() => {
       const theApp = Application("DEVONthink");
       theApp.includeStandardAdditions = true;
-      
+
       try {
         let targetDatabase;
         if ("${databaseName || ""}") {
@@ -65,22 +66,22 @@ const createRecord = async (
         } else {
           destinationGroup = targetDatabase.incomingGroup();
         }
-        
+
         // Create the record properties
         const recordProps = {
-          name: "${name}",
+          name: "${escapeStringForJXA(name)}",
           type: "${type}"
         };
-        
+
         // Add content if provided
-        ${content ? `recordProps.content = \`${content.replace(/`/g, "\\`")}\`;` : ""}
-        
+        ${content ? `recordProps.content = "${escapeStringForJXA(content)}";` : ""}
+
         // Add URL if provided
         ${url ? `recordProps.URL = "${url}";` : ""}
-        
+
         // Create the record
         const newRecord = theApp.createRecordWith(recordProps, { in: destinationGroup });
-        
+
         if (newRecord) {
           return JSON.stringify({
             success: true,
